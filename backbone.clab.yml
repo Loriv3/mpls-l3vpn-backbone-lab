@@ -1,0 +1,121 @@
+name: telco-backbone
+
+topology:
+  defaults:
+    kind: linux
+    image: quay.io/frrouting/frr:10.1.0
+    binds:
+      - configs/daemons:/etc/frr/daemons
+      - configs/vtysh.conf:/etc/frr/vtysh.conf
+
+  nodes:
+    p1:
+      binds:
+        - configs/p1.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - sysctl -w net.mpls.conf.eth2.input=1
+        - sysctl -w net.mpls.conf.eth3.input=1
+        - sysctl -w net.mpls.conf.eth4.input=1
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    p2:
+      binds:
+        - configs/p2.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - sysctl -w net.mpls.conf.eth2.input=1
+        - sysctl -w net.mpls.conf.eth3.input=1
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    p3:
+      binds:
+        - configs/p3.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - sysctl -w net.mpls.conf.eth2.input=1
+        - sysctl -w net.mpls.conf.eth3.input=1
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    rr1:
+      binds:
+        - configs/rr1.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    pe1:
+      binds:
+        - configs/pe1.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - ip link add VRF_A type vrf table 10
+        - ip link set dev VRF_A up
+        - ip link set dev eth2 master VRF_A
+        - ip link add VRF_B type vrf table 20
+        - ip link set dev VRF_B up
+        - ip link set dev eth3 master VRF_B
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    pe2:
+      binds:
+        - configs/pe2.conf:/etc/frr/frr.conf.startup
+      exec:
+        - sysctl -w net.mpls.platform_labels=1048575
+        - sysctl -w net.mpls.conf.lo.input=1
+        - sysctl -w net.mpls.conf.eth1.input=1
+        - sysctl -w net.mpls.conf.eth2.input=1
+        - ip link add VRF_A type vrf table 10
+        - ip link set dev VRF_A up
+        - ip link set dev eth3 master VRF_A
+        - ip link add VRF_B type vrf table 20
+        - ip link set dev VRF_B up
+        - ip link set dev eth4 master VRF_B
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    ce-a1:
+      binds:
+        - configs/ce-a1.conf:/etc/frr/frr.conf.startup
+      exec:
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    ce-a2:
+      binds:
+        - configs/ce-a2.conf:/etc/frr/frr.conf.startup
+      exec:
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    ce-b1:
+      binds:
+        - configs/ce-b1.conf:/etc/frr/frr.conf.startup
+      exec:
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+    ce-b2:
+      binds:
+        - configs/ce-b2.conf:/etc/frr/frr.conf.startup
+      exec:
+        - /usr/lib/frr/frr-reload.py --reload /etc/frr/frr.conf.startup
+
+  links:
+    - endpoints: ["pe1:eth1", "p1:eth1"]
+    - endpoints: ["p1:eth2", "p2:eth1"]
+    - endpoints: ["p1:eth3", "p3:eth1"]
+    - endpoints: ["p2:eth2", "p3:eth2"]
+    - endpoints: ["p2:eth3", "pe2:eth1"]
+    - endpoints: ["p3:eth3", "pe2:eth2"]
+    - endpoints: ["p1:eth4", "rr1:eth1"]
+    - endpoints: ["pe1:eth2", "ce-a1:eth1"]
+    - endpoints: ["pe2:eth3", "ce-a2:eth1"]
+    - endpoints: ["pe1:eth3", "ce-b1:eth1"]
+    - endpoints: ["pe2:eth4", "ce-b2:eth1"]
